@@ -1,0 +1,151 @@
+zabbix 4.0(CentOS 7.5) 安装配置手册
+1、zabbix介绍：
+	Zabbix是一种企业级开源分布式监控解决方案。
+	Zabbix是监控网络的众多参数以及服务器的健康和完整性的软件。Zabbix使用灵活的通知机制，允许用户为几乎任何事件配置基于电子邮件的警报。这样可以快速响应服务器问题。Zabbix基于存储的数据提供出色的报告和数据可视化功能。这使得Zabbix成为容量规划的理想选择。
+	Zabbix支持轮询和陷阱。所有Zabbix报告和统计信息以及配置参数都可通过基于Web的前端访问。基于Web的前端可确保从任何位置评估网络状态和服务器运行状况。经过适当配置，Zabbix可以在监控IT基础架构方面发挥重要作用。对于拥有少量服务器的小型组织以及拥有大量服务器的大型公司来说，情况也同样如此。
+
+	Zabbix是免费的。Zabbix是根据GPL通用公共许可证版本2 编写和分发的。这意味着它的源代码是免费分发的，并且可供公众使用。
+
+2、功能特点：
+	2.1、数据收集
+
+		可用性和性能检查
+		支持SNMP（捕获和轮询），IPMI，JMX，VMware监控
+		自定义检查
+		按自定义间隔收集所需数据
+		由服务器/代理和代理执行
+	2.2、灵活的阈值定义
+
+		您可以定义非常灵活的问题阈值，称为触发器，引用后端数据库中的值
+	2.3、高度可配置的警报
+
+		可以为升级计划，收件人，媒体类型自定义发送通知
+		使用宏变量可以使通知变得有意义和有用
+		自动操作包括远程命令
+	2.4、实时图形
+
+		使用内置图形功能立即绘制受监视项目
+	2.5、Web监控功能
+
+		Zabbix可以遵循网站上模拟鼠标点击的路径，并检查功能和响应时间
+	2.6、广泛的可视化选项
+
+		能够创建可以将多个项目组合到单个视图中的自定义图形
+		网络地图
+		自定义屏幕和幻灯片显示，用于仪表板风格的概述
+		报告
+		监控资源的高级（业务）视图
+	2.7、历史数据存储
+
+		存储在数据库中的数据
+		可配置的历史
+		内置的家政程序
+	2.8、配置简单
+
+		将受监控设备添加为主机
+		一旦进入数据库，就会选择主机进行监控
+		将模板应用于受监控设备
+	2.9、使用模板
+
+		分组检查模板
+		模板可以继承其他模板
+	2.3.0、网络发现
+
+		自动发现网络设备
+		代理商自动注册
+		发现文件系统，网络接口和SNMP OID
+	2.3.1、快速的Web界面
+
+		PHP中基于Web的前端
+		随处可访问
+		你可以点击你的方式
+		审核日志
+	2.3.2、Zabbix API
+
+		Zabbix API为Zabbix 提供可编程接口，用于大规模操作，第三方软件集成和其他用途。
+	2.3.3、权限系统
+
+		安全用户认证
+		某些用户可以限制在某些视图中
+	2.3.4、功能齐全且易于扩展的代理
+
+		部署在监控目标上
+		可以在Linux和Windows上部署
+	2.3.5、二进制守护进程
+
+		用C语言编写，用于性能和小内存占用
+		便于携带
+	2.3.6、适应复杂的环境
+
+		使用Zabbix代理可以轻松实现远程监控
+##############################################################################################
+3、下载zabbix版本：
+	wget https://nchc.dl.sourceforge.net/project/zabbix/ZABBIX%20Latest%20Stable/4.0.1/zabbix-4.0.1.tar.gz
+4、解决以来关系：
+	yum install mariadb mariadb-devel libxml2 libxml2-devel  libcurl libcurl-devel net-snmp-devel  net-snmp-utils  libevent libevent-devel -y
+5、搭建LAMP 环境平台：
+	yum install -y mariadb mariadb-server mariadb-devel php php-devel php-mysql httpd
+	systemctl start httpd
+	systemctl start mariadb
+	5.1、修改php时区：
+		vim /etc/php.ini
+		date.timezone = Asia/Shanghai
+	5.2、创建测试页：
+		cho '<?php echo phpinfo();?>' > test.php
+	5.3、登录数据库创建zabbix库：
+		MariaDB [(none)]> create database zabbix character set utf8 collate utf8_bin;
+		Query OK, 1 row affected (0.00 sec)
+
+		MariaDB [(none)]> grant all privileges on zabbix.* to zabbix@localhost identified by 'zabbix';
+		Query OK, 0 rows affected (0.00 sec)
+
+		MariaDB [(none)]> flush privileges;
+		Query OK, 0 rows affected (0.00 sec)
+6、zabbix安装解压：
+		tar xf zabbix-4.0.1.tar.gz -C /usr/src
+	6.1、编译安装：
+		cd /usr/src/zabbix-4.0.1
+		./configure --enable-server --enable-porxy --enable-agent --with-mysql --enable-ipv6 --with-net-snmp --with-libcurl --with-libxml2
+		make
+		make install
+	6.2、设置环境变量：
+		ln -s /usr/local/zabbix4.0/sbin/* /usr/local/sbin
+		ln -s /usr/local/zabbix4.0/bin/* /usr/local/bin
+		ln -s /usr/local/zabbix4.0/etc/* /usr/local/etc
+	6.3、创建zabbix网站目录：
+		mkdir /var/www/html/zabbix
+		cp -a /usr/src/zabbix-4.0.1/frontends/php/* /var/www/html/zabbix/
+		chown apache.apache -R  /var/www/html
+	6.4、修改zabbix配置文件的数据库：
+		vim /usr/local/zabbix4.0/etc/zabbix_server.conf
+		[root@zabbix_server etc]# grep -v '^#' zabbix_server.conf |grep -v "^$"
+			LogFile=/tmp/zabbix_server.log
+			DBHost=127.0.0.1
+			DBName=zabbix
+			DBUser=zabbix
+			DBPassword=zabbix
+			Timeout=4
+			LogSlowQueries=3000
+	6.5、导入zabbix数据库：
+		cd /usr/src/zabbix-4.0.1/database
+		[root@zabbix_server mysql]# mysql -uzabbix -pzabbix  zabbix < schema.sql 
+		[root@zabbix_server mysql]# mysql -uzabbix -pzabbix  zabbix < images.sql 
+		[root@zabbix_server mysql]# mysql -uzabbix -pzabbix  zabbix < data.sql 
+	6.6、启动zabbix：
+		zabbix_server #主服务
+		zabbix_agent #被监控端服务
+		zabbix_porxy #代理服务
+		
+###########################################################################################	
+注意：解决图形中文乱码问题：
+	cd /var/www/html/zabbix/fonts
+	rz -E 
+	simhei.ttf(此字体需要在windows或网上下载并上床到此目录下：/var/www/html/zabbix/fonts)
+	windows 10路径：
+		控制面板\字体\黑体常规
+		mv SIMHEI.TTF simhei.ttf(改为小写)
+	在修改定义字体配置文件：
+		vim /var/www/html/zabbix/include/defines.inc.php
+	或者：
+		sed -i 's/DejaVuSans/simhei/g' /var/www/html/zabbix/include/defines.inc.php
+###########################################################################################
